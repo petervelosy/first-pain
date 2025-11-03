@@ -10,6 +10,9 @@ from rest_framework.permissions import AllowAny
 from django.conf import settings
 import colorsys
 
+import openai
+from openai import OpenAI
+
 EARTH_SRC_PATH = os.getenv(
     "EARTH_TEXTURE_SRC",
     str((settings.BASE_DIR / "assets" / "8k_earth_daymap_greyscale.jpg").resolve())
@@ -432,4 +435,57 @@ def locate_pain(request):
         "seed": seed_id,
         "bumpmap_url": bumpmap_url,
         "method": "hash->uniform-sphere(asin)"
+    }, status=200)
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def get_common_pain_story(request):
+    """
+    POST JSON: {
+                 "personal_account_1": "My whole body hurts. I have got shot in the war.",
+                 "elements_1": [
+                   "earth",
+                   "metal",
+                   "wood"
+                 ],
+                 "feelings_1": [
+                   "injustice",
+                   "depression",
+                   "anger",
+                   "war"
+                 ],
+                 "personal_account_2": "My whole body hurts. My wife left me for somebody else and now I am feeling this as physically as it gets.",
+                 "elements_2": [
+                   "earth",
+                   "wood"
+                 ],
+                 "feelings_2": [
+                   "disease",
+                   "toxicity"
+                 ]
+               }
+    -> { "common_pain_story": "..." }
+    """
+
+    elements_1 = request.data.get("elements_1") or []
+    feelings_1 = request.data.get("feelings_1") or []
+    personal_account_1 = (request.data.get("personal_account_1") or "").strip()
+
+    elements_2 = request.data.get("elements_2") or []
+    feelings_2 = request.data.get("feelings_2") or []
+    personal_account_2 = (request.data.get("personal_account_2") or "").strip()
+
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    completion = client.chat.completions.create(
+      model="gpt-5",
+      messages=[
+          {"role": "system", "content": "Here are two accounts about pain from two people. Make a poem about the pain they share in easy language so that people, for whom English is not their mother tongue, can understand it. Address the text to the two people."},
+          {"role": "user", "content": f"Story from person 1:\"{personal_account_1}\". This person relates their pain to the following elements: \"{','.join(elements_1)}\". This person has the following feelings: \"{','.join(feelings_1)}\". Story from person 2:\"{personal_account_2}\". This person relates their pain to the following elements: \"{','.join(elements_2)}\". This person has the following feelings: \"{','.join(feelings_2)}\"."}
+      ]
+    )
+
+    common_pain_story = completion.choices[0].message.content.replace("\n", "<br/>")
+
+    return JsonResponse({
+        "common_pain_story": common_pain_story
     }, status=200)

@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, re_path
-from bump.views import bumpmap, cloudmap, earthtexture, locate_pain
+from bump.views import bumpmap, cloudmap, earthtexture, locate_pain, get_common_pain_story
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -28,4 +28,6 @@ urlpatterns = [
     re_path(r'^api/earthtexture$', earthtexture),
     path('api/locate-pain/', locate_pain, name='locate_pain'),
     re_path(r'^api/locate-pain$', locate_pain),
+    path('api/common-pain-story/', get_common_pain_story, name='get_common_pain_story'),
+        re_path(r'^api/common-pain-story$', get_common_pain_story),
 ]
